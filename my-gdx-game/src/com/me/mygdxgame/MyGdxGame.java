@@ -9,30 +9,72 @@ import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.physics.box2d.CircleShape;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
 
 public class MyGdxGame implements ApplicationListener {
+	
+	static final float WORLD_TO_BOX = 0.01f;
+	static final float BOX_TO_WORLD = 100f;
+	
+	Box2DDebugRenderer debugRenderer;
 	private OrthographicCamera camera;
 	private SpriteBatch batch;
 	private Texture texture;
 	private Sprite sprite;
+	
+	private World world;
+    private Body cart ;
+    private Body wheel1;
+    private Body wheel2;
 	
 	@Override
 	public void create() {		
 		float w = Gdx.graphics.getWidth();
 		float h = Gdx.graphics.getHeight();
 		
-		camera = new OrthographicCamera(1, h/w);
+		debugRenderer = new Box2DDebugRenderer();
+		camera = new OrthographicCamera();
+		camera.viewportHeight = 320;
+		camera.viewportWidth = 480;
+		camera.position.set(camera.viewportWidth*.5f, camera.viewportHeight*.5f, 0f);
+		camera.update();
+		
 		batch = new SpriteBatch();
 		
-		texture = new Texture(Gdx.files.internal("data/libgdx.png"));
-		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		world = new World(new Vector2(0, -100), true);
 		
-		TextureRegion region = new TextureRegion(texture, 0, 0, 512, 275);
+		BodyDef groundBodyDef =new BodyDef();  
+		groundBodyDef.position.set(new Vector2(0, 10));  
+		Body groundBody = world.createBody(groundBodyDef);  
+		PolygonShape groundBox = new PolygonShape();  
+		groundBox.setAsBox(camera.viewportWidth, 10.0f);
+		groundBody.createFixture(groundBox, 0.0f); 
+		groundBox.dispose();
 		
-		sprite = new Sprite(region);
-		sprite.setSize(0.9f, 0.9f * sprite.getHeight() / sprite.getWidth());
-		sprite.setOrigin(sprite.getWidth()/2, sprite.getHeight()/2);
-		sprite.setPosition(-sprite.getWidth()/2, -sprite.getHeight()/2);
+		
+		BodyDef bodyDef = new BodyDef();
+		bodyDef.type = BodyType.DynamicBody;
+		bodyDef.position.set(camera.viewportWidth/2, camera.viewportHeight);
+		Body body = world.createBody(bodyDef);
+		CircleShape circle = new CircleShape();
+		circle.setRadius(10f);
+		FixtureDef fixtureDef = new FixtureDef();
+		fixtureDef.shape = circle;
+		fixtureDef.density = 0.5f; 
+		fixtureDef.friction = 0.4f;
+		fixtureDef.restitution = 0.9f; // Make it bounce a little bit
+		body.createFixture(fixtureDef);
+		circle.dispose();
+		
 	}
 
 	@Override
@@ -43,13 +85,10 @@ public class MyGdxGame implements ApplicationListener {
 
 	@Override
 	public void render() {		
-		Gdx.gl.glClearColor(1, 1, 1, 1);
+		//Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-		
-		batch.setProjectionMatrix(camera.combined);
-		batch.begin();
-		sprite.draw(batch);
-		batch.end();
+		world.step(1/60f, 6, 2);
+		debugRenderer.render(world, camera.combined);
 	}
 
 	@Override
