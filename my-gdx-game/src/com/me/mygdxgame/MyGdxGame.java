@@ -2,6 +2,8 @@ package com.me.mygdxgame;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -19,11 +21,16 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.joints.PrismaticJoint;
+import com.badlogic.gdx.physics.box2d.joints.PrismaticJointDef;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJoint;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 
 public class MyGdxGame implements ApplicationListener {
 	
 	static final float WORLD_TO_BOX = 0.01f;
 	static final float BOX_TO_WORLD = 100f;
+	static final float DEGTORAD = 0.0174533f;
 	
 	Box2DDebugRenderer debugRenderer;
 	private OrthographicCamera camera;
@@ -35,12 +42,17 @@ public class MyGdxGame implements ApplicationListener {
     private Body cart ;
     private Body wheel1;
     private Body wheel2;
+    
+    private Body axel1;
+    private RevoluteJoint motor1;
+    private RevoluteJointDef joint1;
+    private PrismaticJoint spring1;
 	
 	@Override
 	public void create() {		
 		float w = Gdx.graphics.getWidth();
 		float h = Gdx.graphics.getHeight();
-		
+	
 		debugRenderer = new Box2DDebugRenderer();
 		camera = new OrthographicCamera();
 		camera.viewportHeight = 320;
@@ -52,28 +64,84 @@ public class MyGdxGame implements ApplicationListener {
 		
 		world = new World(new Vector2(0, -100), true);
 		
+		//GROUND
 		BodyDef groundBodyDef =new BodyDef();  
-		groundBodyDef.position.set(new Vector2(0, 10));  
+		groundBodyDef.position.set(new Vector2(0, 5));  
 		Body groundBody = world.createBody(groundBodyDef);  
 		PolygonShape groundBox = new PolygonShape();  
-		groundBox.setAsBox(camera.viewportWidth, 10.0f);
+		groundBox.setAsBox(camera.viewportWidth*2, 10.0f);
 		groundBody.createFixture(groundBox, 0.0f); 
 		groundBox.dispose();
 		
 		
-		BodyDef bodyDef = new BodyDef();
-		bodyDef.type = BodyType.DynamicBody;
-		bodyDef.position.set(camera.viewportWidth/2, camera.viewportHeight);
-		Body body = world.createBody(bodyDef);
+		//CART
+		 BodyDef bodyDef = new BodyDef();
+         bodyDef.position.set(camera.viewportWidth/2, 100f);
+         bodyDef.type = BodyType.DynamicBody;
+ 
+         cart = world.createBody(bodyDef);
+         
+         FixtureDef boxDef = new FixtureDef();
+         boxDef.density = 2f;
+         boxDef.friction = 0.5f;
+         boxDef.restitution = 0.2f;
+         boxDef.filter.groupIndex = -1;
+         
+         PolygonShape polyShape = new PolygonShape();  
+         polyShape.setAsBox(50f, 10f);
+         boxDef.shape = polyShape;
+         cart.createFixture(boxDef);
+         
+         polyShape.setAsBox(15f, 5f, new Vector2(-40f, -10f), 80*DEGTORAD);
+         boxDef.shape = polyShape;
+         cart.createFixture(boxDef);
+         
+         polyShape.setAsBox(5f, 15f, new Vector2(40f, -10f), -170*DEGTORAD);
+         boxDef.shape = polyShape;
+         cart.createFixture(boxDef);
+         
+         
+         boxDef.density = 1;
+		
+		//axels
+		axel1 = world.createBody(bodyDef);
+		polyShape.setAsBox(3, 10, new Vector2(44f, -30f), -170*DEGTORAD);
+		boxDef.shape = polyShape;
+		axel1.createFixture(boxDef);
+        
+		PrismaticJointDef prismaticJointDef = new PrismaticJointDef();
+        prismaticJointDef.initialize(cart, axel1, axel1.getWorldCenter(), 
+        		new Vector2(0f, 0f));
+        prismaticJointDef.lowerTranslation = -.5f;
+        prismaticJointDef.upperTranslation = .5f;
+        prismaticJointDef.enableLimit = true;
+        prismaticJointDef.enableMotor = true;
+        
+        spring1 = (PrismaticJoint) world.createJoint(prismaticJointDef);
+     
+        
+        //WHEELS
+       // bodyDef = new BodyDef();
+        bodyDef.type = BodyType.DynamicBody;
+		bodyDef.position.set(axel1.getWorldCenter().x, axel1.getWorldCenter().y);
+		
+		wheel1 = world.createBody(bodyDef);
 		CircleShape circle = new CircleShape();
-		circle.setRadius(10f);
+		circle.setRadius(20f);
 		FixtureDef fixtureDef = new FixtureDef();
 		fixtureDef.shape = circle;
-		fixtureDef.density = 0.5f; 
-		fixtureDef.friction = 0.4f;
-		fixtureDef.restitution = 0.9f; // Make it bounce a little bit
-		body.createFixture(fixtureDef);
+		fixtureDef.density = 0.1f; 
+		fixtureDef.friction = 5f;
+		fixtureDef.restitution = 0.2f; // Make it bounce a little bit
+		wheel1.createFixture(fixtureDef);
 		circle.dispose();
+		
+		// add joints //
+		joint1 = new RevoluteJointDef();
+		joint1.enableMotor = true;
+        
+		joint1.initialize(axel1, wheel1, wheel1.getWorldCenter());
+        motor1 = (RevoluteJoint) world.createJoint(joint1);
 		
 	}
 
@@ -84,9 +152,23 @@ public class MyGdxGame implements ApplicationListener {
 	}
 
 	@Override
-	public void render() {		
+	public void render() {
 		//Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+		
+		if(Gdx.input.isKeyPressed(Input.Keys.SPACE)){
+			world = null;
+			create();
+			return;
+		}
+		
+		motor1.setMotorSpeed(Gdx.input.isTouched()? 500 : 0);
+        motor1.setMaxMotorTorque(Gdx.input.isTouched()? 500 : 0);
+
+       // spring1.setMaxMotorForce((float) (30+Math.abs(800*Math.pow(spring1.getJointTranslation(), 2))));
+       // spring1.setMotorSpeed((float) ((spring1.getMotorSpeed() - 10*spring1.getJointTranslation())*0.4));         
+        
+		
 		world.step(1/60f, 6, 2);
 		debugRenderer.render(world, camera.combined);
 	}
@@ -101,5 +183,6 @@ public class MyGdxGame implements ApplicationListener {
 
 	@Override
 	public void resume() {
+		wheel1.applyForceToCenter(new Vector2(0, 200f));
 	}
 }
