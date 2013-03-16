@@ -105,17 +105,25 @@ public class MyGdxGame implements ApplicationListener {
 		
 		//axels
 		axel1 = world.createBody(bodyDef);
-		polyShape.setAsBox(3, 10, new Vector2(44f, -30f), -170*DEGTORAD);
+		polyShape.setAsBox(3, 15, new Vector2(5f, -30f), -170*DEGTORAD);
 		boxDef.shape = polyShape;
 		axel1.createFixture(boxDef);
         
 		PrismaticJointDef prismaticJointDef = new PrismaticJointDef();
-        prismaticJointDef.initialize(cart, axel1, axel1.getWorldCenter(), 
-        		new Vector2(0f, 0f));
-        prismaticJointDef.lowerTranslation = -.5f;
-        prismaticJointDef.upperTranslation = .5f;
+        prismaticJointDef.bodyA = cart;
+        prismaticJointDef.bodyB = axel1;
+        prismaticJointDef.collideConnected = false;
+        prismaticJointDef.localAxisA.set(1, -5);
+        prismaticJointDef.localAnchorA.set(new Vector2(40f, 0f));
+        prismaticJointDef.localAnchorB.set(3, 0);
+        prismaticJointDef.referenceAngle = 3*DEGTORAD;
+        prismaticJointDef.enableLimit = true;
+        prismaticJointDef.lowerTranslation = 0f;
+        prismaticJointDef.upperTranslation = 0f;
         prismaticJointDef.enableLimit = true;
         prismaticJointDef.enableMotor = true;
+        prismaticJointDef.maxMotorForce = 50000000;//this is a powerful machine after all...
+        prismaticJointDef.motorSpeed = 500000000f;
         
         spring1 = (PrismaticJoint) world.createJoint(prismaticJointDef);
      
@@ -142,6 +150,7 @@ public class MyGdxGame implements ApplicationListener {
         
 		joint1.initialize(axel1, wheel1, wheel1.getWorldCenter());
         motor1 = (RevoluteJoint) world.createJoint(joint1);
+        motor1.setMaxMotorTorque(500f);
 		
 	}
 
@@ -162,8 +171,8 @@ public class MyGdxGame implements ApplicationListener {
 			return;
 		}
 		
-		motor1.setMotorSpeed(Gdx.input.isTouched()? 500 : 0);
-        motor1.setMaxMotorTorque(Gdx.input.isTouched()? 500 : 0);
+		//motor1.setMotorSpeed(Gdx.input.isTouched()? 500 : 0);
+      //  motor1.setMaxMotorTorque(Gdx.input.isTouched()? 500 : 0);
 
        // spring1.setMaxMotorForce((float) (30+Math.abs(800*Math.pow(spring1.getJointTranslation(), 2))));
        // spring1.setMotorSpeed((float) ((spring1.getMotorSpeed() - 10*spring1.getJointTranslation())*0.4));         
