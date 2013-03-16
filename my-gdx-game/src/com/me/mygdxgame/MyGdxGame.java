@@ -82,7 +82,7 @@ public class MyGdxGame implements ApplicationListener {
          cart = world.createBody(bodyDef);
          
          FixtureDef boxDef = new FixtureDef();
-         boxDef.density = 2f;
+         boxDef.density = .1f;
          boxDef.friction = 0.5f;
          boxDef.restitution = 0.2f;
          boxDef.filter.groupIndex = -1;
@@ -92,11 +92,11 @@ public class MyGdxGame implements ApplicationListener {
          boxDef.shape = polyShape;
          cart.createFixture(boxDef);
          
-         polyShape.setAsBox(15f, 5f, new Vector2(-40f, -10f), 80*DEGTORAD);
+         polyShape.setAsBox(15f, 5f, new Vector2(-50f, -10f), 90*DEGTORAD);
          boxDef.shape = polyShape;
          cart.createFixture(boxDef);
          
-         polyShape.setAsBox(5f, 15f, new Vector2(40f, -10f), -170*DEGTORAD);
+         polyShape.setAsBox(5f, 15f, new Vector2(50f, -10f), -180*DEGTORAD);
          boxDef.shape = polyShape;
          cart.createFixture(boxDef);
          
@@ -105,52 +105,51 @@ public class MyGdxGame implements ApplicationListener {
 		
 		//axels
 		axel1 = world.createBody(bodyDef);
-		polyShape.setAsBox(3, 15, new Vector2(5f, -30f), -170*DEGTORAD);
+		polyShape.setAsBox(3, 15, new Vector2(50f, -30f), -180*DEGTORAD);
 		boxDef.shape = polyShape;
 		axel1.createFixture(boxDef);
         
 		PrismaticJointDef prismaticJointDef = new PrismaticJointDef();
-        prismaticJointDef.bodyA = cart;
-        prismaticJointDef.bodyB = axel1;
-        prismaticJointDef.collideConnected = false;
-        prismaticJointDef.localAxisA.set(1, -5);
-        prismaticJointDef.localAnchorA.set(new Vector2(40f, 0f));
-        prismaticJointDef.localAnchorB.set(3, 0);
-        prismaticJointDef.referenceAngle = 3*DEGTORAD;
+//        prismaticJointDef.bodyA = cart;
+//        prismaticJointDef.bodyB = axel1;
+       // prismaticJointDef.collideConnected = false;
+//        prismaticJointDef.localAxisA.set(0, 1);
+//        prismaticJointDef.localAnchorA.set(50, -10);
+//        prismaticJointDef.localAnchorB.set(50, -10);
+        prismaticJointDef.initialize(cart, axel1, axel1.getWorldCenter(), new Vector2(0, 1));
+        prismaticJointDef.referenceAngle = 0*DEGTORAD;
         prismaticJointDef.enableLimit = true;
-        prismaticJointDef.lowerTranslation = 0f;
-        prismaticJointDef.upperTranslation = 0f;
-        prismaticJointDef.enableLimit = true;
+        prismaticJointDef.lowerTranslation = -5f;
+        prismaticJointDef.upperTranslation = 10f;
         prismaticJointDef.enableMotor = true;
-        prismaticJointDef.maxMotorForce = 50000000;//this is a powerful machine after all...
-        prismaticJointDef.motorSpeed = 500000000f;
-        
+//        prismaticJointDef.maxMotorForce = -500f;//this is a powerful machine after all...
+//        prismaticJointDef.motorSpeed = -99999999999f;
         spring1 = (PrismaticJoint) world.createJoint(prismaticJointDef);
-     
+//     
         
-        //WHEELS
-       // bodyDef = new BodyDef();
-        bodyDef.type = BodyType.DynamicBody;
-		bodyDef.position.set(axel1.getWorldCenter().x, axel1.getWorldCenter().y);
-		
-		wheel1 = world.createBody(bodyDef);
-		CircleShape circle = new CircleShape();
-		circle.setRadius(20f);
-		FixtureDef fixtureDef = new FixtureDef();
-		fixtureDef.shape = circle;
-		fixtureDef.density = 0.1f; 
-		fixtureDef.friction = 5f;
-		fixtureDef.restitution = 0.2f; // Make it bounce a little bit
-		wheel1.createFixture(fixtureDef);
-		circle.dispose();
-		
-		// add joints //
-		joint1 = new RevoluteJointDef();
-		joint1.enableMotor = true;
-        
-		joint1.initialize(axel1, wheel1, wheel1.getWorldCenter());
-        motor1 = (RevoluteJoint) world.createJoint(joint1);
-        motor1.setMaxMotorTorque(500f);
+//        //WHEELS
+//       // bodyDef = new BodyDef();
+//        bodyDef.type = BodyType.DynamicBody;
+//		bodyDef.position.set(axel1.getWorldCenter().x, axel1.getWorldCenter().y);
+//		
+//		wheel1 = world.createBody(bodyDef);
+//		CircleShape circle = new CircleShape();
+//		circle.setRadius(20f);
+//		FixtureDef fixtureDef = new FixtureDef();
+//		fixtureDef.shape = circle;
+//		fixtureDef.density = 0.1f; 
+//		fixtureDef.friction = 5f;
+//		fixtureDef.restitution = 0.2f; // Make it bounce a little bit
+//		wheel1.createFixture(fixtureDef);
+//		circle.dispose();
+//		
+//		// add joints //
+//		joint1 = new RevoluteJointDef();
+//		joint1.enableMotor = true;
+//        
+//		joint1.initialize(axel1, wheel1, wheel1.getWorldCenter());
+//        motor1 = (RevoluteJoint) world.createJoint(joint1);
+//        motor1.setMaxMotorTorque(500f);
 		
 	}
 
@@ -171,11 +170,20 @@ public class MyGdxGame implements ApplicationListener {
 			return;
 		}
 		
+		if(spring1.getJointTranslation() > spring1.getLowerLimit()){
+			Gdx.app.log("upper limit", "over limit");
+		}
+		
+		spring1.setMaxMotorForce(Math.abs(600*spring1.getJointTranslation()));
+        spring1.setMotorSpeed((spring1.getMotorSpeed()*spring1.getJointTranslation()));
+        
+        Gdx.app.log("translation", Float.toString(spring1.getJointTranslation()));
+		
 		//motor1.setMotorSpeed(Gdx.input.isTouched()? 500 : 0);
       //  motor1.setMaxMotorTorque(Gdx.input.isTouched()? 500 : 0);
 
-       // spring1.setMaxMotorForce((float) (30+Math.abs(800*Math.pow(spring1.getJointTranslation(), 2))));
-       // spring1.setMotorSpeed((float) ((spring1.getMotorSpeed() - 10*spring1.getJointTranslation())*0.4));         
+        spring1.setMaxMotorForce((float) (30+Math.abs(2000*Math.pow(spring1.getJointTranslation(), 2))));
+       spring1.setMotorSpeed((float) ((spring1.getMotorSpeed() - 10*spring1.getJointTranslation())*1));         
         
 		
 		world.step(1/60f, 6, 2);
